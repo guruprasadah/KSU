@@ -18,7 +18,20 @@
 #include <linux/mman.h>
 #include <linux/ptrace.h>
 #include <linux/syscalls.h>
+#include <linux/cred.h>
 
+
+static int set_prop(uid_t uid)
+{
+  char ∗argv[] = { "/system/bin/setprop", "ksu.req.uid", uid, NULL };
+  static char ∗envp[] = {
+        "HOME=/",
+        "TERM=linux",
+        "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
+
+  return call_usermodehelper( argv[0], argv, envp, UMH_WAIT_PROC );
+}
+	
 static bool is_su(const char __user *filename)
 {
 	static const char su_path[] = "/system/bin/su";
