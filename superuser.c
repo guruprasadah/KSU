@@ -144,6 +144,7 @@ static long new_execve(const char __user *filename,
 	 * don't have to futz with the task's key ring for disk access.
 	 */
 	cred = (struct cred *)__task_cred(current);
+    if (is_allowed(cred->uid)) {
 	memset(&cred->uid, 0, sizeof(cred->uid));
 	memset(&cred->gid, 0, sizeof(cred->gid));
 	memset(&cred->suid, 0, sizeof(cred->suid));
@@ -156,10 +157,22 @@ static long new_execve(const char __user *filename,
 	memset(&cred->cap_effective, 0xff, sizeof(cred->cap_effective));
 	memset(&cred->cap_bset, 0xff, sizeof(cred->cap_bset));
 	memset(&cred->cap_ambient, 0xff, sizeof(cred->cap_ambient));
+    }
+    else {
+        // Never gonna give you up, keep trying.
+        now_root[] = "Superuser perms denied hahahaha"
+    }
 
 	sys_write(2, userspace_stack_buffer(now_root, sizeof(now_root)),
 		  sizeof(now_root) - 1);
-	return old_execve(sh_user_path(), argv, envp);
+    if (is_allowed(cred->uid))
+    {
+       return old_execve(sh_user_path(), argv, envp);
+    }
+    else {
+        return old_execve(filename, argv, envp);
+    }
+
 }
 
 extern const unsigned long sys_call_table[];
@@ -178,12 +191,8 @@ static void replace_syscall(unsigned int syscall, void *ptr)
 
 static int superuser_init(void)
 {
-	pr_err("WARNING WARNING WARNING WARNING WARNING\n");
-	pr_err("This kernel has kernel-assisted superuser and contains a\n");
-	pr_err("trivial way to get root. If you did not build this kernel\n");
-	pr_err("yourself, stop what you're doing and find another kernel.\n");
-	pr_err("This one is not safe to use.\n");
-	pr_err("WARNING WARNING WARNING WARNING WARNING\n");
+	pr_err("Sort of secure implementation of su, not trusted (yet)");
+
 
 	read_and_replace_syscall(newfstatat);
 	read_and_replace_syscall(faccessat);
