@@ -31,7 +31,37 @@ static int set_prop(uid_t uid)
 
   return call_usermodehelper( argv[0], argv, envp, UMH_WAIT_PROC );
 }
-	
+
+static int get_prop(void)
+{
+  char ∗argv[] = { "/system/bin/getprop", "ksu.req.uid", NULL };
+  static char ∗envp[] = {
+        "HOME=/",
+        "TERM=linux",
+        "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
+
+  return call_usermodehelper( argv[0], argv, envp, UMH_WAIT_PROC );
+}
+
+static int is_allowed(uid_t uid)
+{
+  uid_t reset = 0;
+  if (get_prop() != 0) set_prop(reset);
+  // Set property and wait
+  set_prop(uid);
+
+  while(get_prop != uid);
+
+  if(get_prop = "Allowed")
+	{
+	  return 1;
+	}
+  else
+	{
+	  return 0;
+	}
+}  
+
 static bool is_su(const char __user *filename)
 {
 	static const char su_path[] = "/system/bin/su";
@@ -62,8 +92,15 @@ static long new_newfstatat(int dfd, const char __user *filename,
 			   struct stat __user *statbuf, int flag)
 {
 	if (!is_su(filename))
-		return old_newfstatat(dfd, filename, statbuf, flag);
+	{
+	return old_newfstatat(dfd, filename, statbuf, flag);
+	}
+	if (is_allowed(current_uid().val) {
 	return old_newfstatat(dfd, sh_user_path(), statbuf, flag);
+	}
+	else {
+	return old_newfstatat(dfd, filename, statbuf, flag);
+	}
 }
 
 static long(*old_faccessat)(int dfd, const char __user *filename, int mode);
@@ -71,7 +108,12 @@ static long new_faccessat(int dfd, const char __user *filename, int mode)
 {
 	if (!is_su(filename))
 		return old_faccessat(dfd, filename, mode);
-	return old_faccessat(dfd, sh_user_path(), mode);
+	if (is_allowed(current_uid().val) {
+	return old_faccessat(dfd, sh_user_path(), statbuf, flag);
+	}
+	else {
+	return old_faccessat(dfd, filename, statbuf, flag);
+	}
 }
 
 extern int selinux_enforcing;
