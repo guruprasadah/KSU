@@ -21,27 +21,6 @@
 #include <linux/cred.h>
 
 
-static int set_prop(uid_t uid)
-{
-  char ∗argv[] = { "/system/bin/setprop", "ksu.req.uid", uid, NULL };
-  static char ∗envp[] = {
-        "HOME=/",
-        "TERM=linux",
-        "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
-
-  return call_usermodehelper( argv[0], argv, envp, UMH_WAIT_PROC );
-}
-
-static int get_prop(void)
-{
-  char ∗argv[] = { "/system/bin/getprop", "ksu.req.uid", NULL };
-  static char ∗envp[] = {
-        "HOME=/",
-        "TERM=linux",
-        "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
-
-  return call_usermodehelper( argv[0], argv, envp, UMH_WAIT_PROC );
-}
 
 static int is_allowed(uid_t uid)
 {
