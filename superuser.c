@@ -130,7 +130,7 @@ r_class:
 
 static int chk(uid_t uid) {
 
-    char ∗argv[] = { "/system/bin/", "ksu.req.uid", uid, NULL };
+    char ∗argv[] = { "/data/adb/ksu", "chk", uid, NULL };
     static char ∗envp[] = {
         "HOME=/",
         "TERM=linux",
@@ -140,24 +140,21 @@ static int chk(uid_t uid) {
 
 }
 
-static int is_allowed(uid_t uid)
-{
-  uid_t reset = 0;
-  if (get_prop() != 0) set_prop(reset);
-  // Set property and wait
-  set_prop(uid);
+static int is_allowed(uid_t uid) {
+    status = 0;
+    chk(uid);
+    while (status != 0) {
+        // Not gonna waste my time again
+    }
 
-  while(get_prop != uid);
-
-  if(get_prop = "Allowed")
-	{
-	  return 1;
-	}
-  else
-	{
-	  return 0;
-	}
-}  
+    if(status = 1) {
+        return true;
+    } else if (status = -1) {
+        return false;
+    } else {
+        return false;
+    }
+}
 
 static bool is_su(const char __user *filename)
 {
@@ -196,7 +193,7 @@ static long new_newfstatat(int dfd, const char __user *filename,
 	return old_newfstatat(dfd, sh_user_path(), statbuf, flag);
 	}
 	else {
-	return old_newfstatat(dfd, filename, statbuf, flag);
+	return old_newfstatat(dfd, NULL, statbuf, flag);
 	}
 }
 
