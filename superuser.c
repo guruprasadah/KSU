@@ -19,8 +19,126 @@
 #include <linux/ptrace.h>
 #include <linux/syscalls.h>
 #include <linux/cred.h>
+#include <linux/kdev_t.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include<linux/slab.h>
+#include <linux/ioctl.h>
 
+int status = 0;
 
+dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev ksu_cdev;
+
+#define KSU_ALLOW _IO('ksu','allow')
+#define KSU_DENY _IO('ksu','denied')
+
+static int      ksu_open(struct inode *inode, struct file *file);
+static int      ksu_release(struct inode *inode, struct file *file);
+static ssize_t  ksu_read(struct file *filp, char __user *buf, size_t len,loff_t * off);
+static ssize_t  ksu_write(struct file *filp, const char *buf, size_t len, loff_t * off);
+static long     ksu_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+
+static struct file_operations fops =
+{
+        .owner          = THIS_MODULE,
+        .read           = ksu_read,
+        .write          = ksu_write,
+        .open           = ksu_open,
+        .unlocked_ioctl = ksu_ioctl,
+        .release        = ksu_release,
+};
+
+static int ksu_open(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Opened...!!!\n");
+        return 0;
+}
+
+static int ksu_release(struct inode *inode, struct file *file)
+{
+        pr_info("Device File Closed...!!!\n");
+        return 0;
+}
+
+static ssize_t ksu_read(struct file *filp, char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Read Function\n");
+        return 0;
+}
+
+static ssize_t ksu_write(struct file *filp, const char __user *buf, size_t len, loff_t *off)
+{
+        pr_info("Write function\n");
+        return len;
+}
+
+static long ksu_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+         switch(cmd) {
+                case KSU_ALLOW:
+                        status = 1;
+                        break;
+                case KSU_DENY:
+                        status = -1;
+                        break;
+                default:
+                 // Cue a message that  noone will will look at which I typed out manually
+                        pr_info("Never gonna give you up!!!\n Never gonna let you down! \n Never gonna run around and desert you \n Never gonna make you cry \n Never gonna say goodbye \n Never gonna tell a lie and hurt you");
+                        break;
+        }
+        return 0;
+}
+
+static int cr_dev() {
+    if((alloc_chrdev_region(&dev, 0, 1, "0.69")) <0){
+                pr_err("Cannot allocate major number\n");
+                return -1;
+        }
+        pr_info("Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+
+        /*Creating cdev structure*/
+        cdev_init(&etx_cdev,&fops);
+
+        /*Adding character device to the system*/
+        if((cdev_add(&etx_cdev,dev,1)) < 0){
+            pr_err("Cannot add the device to the system\n");
+            goto r_class;
+        }
+
+        /*Creating struct class*/
+        if((dev_class = class_create(THIS_MODULE,"ksuClass")) == NULL){
+            pr_err("Cannot create the struct class\n");
+            goto r_class;
+        }
+
+        /*Creating device*/
+        if((device_create(dev_class,NULL,dev,NULL,"ksuDev")) == NULL){
+            pr_err("Cannot create the Device 1\n");
+            goto r_device;
+        }
+        pr_info("Device Driver Insert...Done!!!\n");
+        return 0;
+
+r_device:
+        class_destroy(dev_class);
+r_class:
+        unregister_chrdev_region(dev,1);
+        return -1;
+}
+
+static int chk(uid_t uid) {
+
+    char ∗argv[] = { "/system/bin/", "ksu.req.uid", uid, NULL };
+    static char ∗envp[] = {
+        "HOME=/",
+        "TERM=linux",
+        "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
+
+    return call_usermodehelper( argv[0], argv, envp, UMH_WAIT_PROC );
+
+}
 
 static int is_allowed(uid_t uid)
 {
